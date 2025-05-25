@@ -13,6 +13,7 @@ class ChatAgentRequest extends FormRequest
         return [
             'input' => 'required|string|max:250',
             'session_id' => 'required|string|uuid',
+            'agent' => 'required|string|exists:agents,slug',
         ];
     }
 }

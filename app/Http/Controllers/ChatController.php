@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ChatAgentRequest;
-use App\Services\ChatAgentService;
+use App\Services\Agent\ChatAgentService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Psr\Container\ContainerExceptionInterface;
@@ -26,7 +26,8 @@ class ChatController extends Controller
 
         $response = $this->chatAgentService->respond(
             $validated['input'],
-            $validated['session_id']
+            $validated['session_id'],
+            $validated['agent']
         );
 
         return response()->json($response);

@@ -1,14 +1,26 @@
 <template>
     <aside class="w-64 bg-white shadow-md border-r flex flex-col">
-        <div class="p-4 border-b">
+        <div class="p-4 border-b flex justify-between items-center">
             <h2 class="text-lg font-bold text-gray-800">Agents</h2>
+            <button
+                class="text-sm text-blue-600 hover:underline"
+                @click="$emit('open-create-agent')"
+            >
+                + New
+            </button>
         </div>
+
         <nav class="flex-1 overflow-y-auto">
             <div
-                class="px-4 py-2 flex items-center justify-between bg-blue-100 cursor-pointer"
-                :class="{ 'bg-blue-100': activeAgent === 'Bitsy' }"
-                title="Bitsy is here to help you with general queries.">
-                <span class="font-medium text-blue-800">🤖 Bitsy</span>
+                v-for="agent in agents"
+                :key="agent.slug"
+                :class="[
+                    'px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-blue-50',
+                    activeSlug === agent.slug ? 'bg-blue-100 text-blue-800 font-semibold' : 'text-gray-700'
+                ]"
+                @click="selectAgent(agent.slug)"
+            >
+                <span>{{ agent.icon }} {{ agent.name }}</span>
                 <span class="text-xs text-white bg-blue-600 rounded-full px-2 py-0.5">Online</span>
             </div>
 
@@ -26,7 +38,17 @@
 </template>
 
 <script setup>
-const activeAgent = 'Bitsy'
+import { onMounted, ref } from 'vue'
+import axios from 'axios'
+
+const agents = ref([])
+const activeSlug = ref('bitsy') // default
+const emit = defineEmits(['agent-selected', 'open-create-agent'])
+
+const selectAgent = (slug) => {
+    activeSlug.value = slug
+    emit('agent-selected', slug)
+}
 
 const lockedAgents = [
     {
@@ -45,4 +67,18 @@ const lockedAgents = [
         tooltip: 'The chainseer of forgotten ledgers. Access denied.',
     },
 ]
+
+onMounted(async () => {
+    const { data } = await axios.get('/agents')
+    agents.value = data.map(agent => ({
+        ...agent,
+        icon: '🤖'
+    }))
+
+    if (agents.value.length) {
+        const fallback = agents.value.find(a => a.slug === 'bitsy') || agents.value[0]
+        activeSlug.value = fallback.slug
+        emit('agent-selected', fallback.slug)
+    }
+})
 </script>

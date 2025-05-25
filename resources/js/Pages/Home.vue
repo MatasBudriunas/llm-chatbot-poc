@@ -1,12 +1,16 @@
 <template>
     <div class="h-screen flex font-sans bg-gray-100">
-        <!-- Sidebar -->
-        <AgentSidebar />
+        <AgentSidebar
+            :key="sidebarKey"
+            @agent-selected="updateAgent"
+            @open-create-agent="openCreateModal"
+        />
 
-        <!-- Chat Window -->
         <main class="flex-1 flex flex-col">
             <header class="p-4 bg-white shadow flex items-center justify-between border-b">
-                <h1 class="text-xl font-semibold text-gray-800">Bitsy the Blockchain Helper</h1>
+                <h1 class="text-xl font-semibold text-gray-800">
+                    {{ currentAgentName }}
+                </h1>
                 <span class="text-sm text-gray-500">Friendly L2 Chat Agent</span>
             </header>
 
@@ -15,7 +19,8 @@
                     <div :class="msg.role === 'user' ? 'ml-auto text-right' : 'mr-auto text-left'">
                         <div
                             :class="msg.role === 'user' ? 'bg-blue-500 text-white' : msg.role === 'assistant' ? 'bg-green-100 text-gray-800' : 'bg-red-100 text-red-800'"
-                            class="inline-block px-4 py-2 rounded-lg max-w-xs break-words whitespace-pre-line">
+                            class="inline-block px-4 py-2 rounded-lg max-w-xs break-words whitespace-pre-line"
+                        >
                             {{ msg.content }}
                         </div>
                         <div class="text-xs text-gray-400 mt-1">
@@ -25,7 +30,7 @@
                 </div>
 
                 <div v-if="isTyping" class="text-left text-sm text-gray-500 animate-pulse">
-                    Bitsy is typing<span class="dots ml-1"></span>
+                    {{ currentAgentName }} is typing<span class="dots ml-1"></span>
                 </div>
             </section>
 
@@ -44,6 +49,12 @@
                 </button>
             </form>
         </main>
+
+        <CreateAgentModal
+            :visible="isModalOpen"
+            @close="isModalOpen = false"
+            @created="handleAgentCreated"
+        />
     </div>
 </template>
 
@@ -51,22 +62,41 @@
 import { ref, nextTick } from 'vue'
 import axios from 'axios'
 import AgentSidebar from '@/Components/AgentSidebar.vue'
+import CreateAgentModal from '@/Components/CreateAgentModal.vue'
 
 const input = ref('')
 const messages = ref([])
 const isTyping = ref(false)
 const chatContainer = ref(null)
 
+const selectedAgent = ref('bitsy')
+const currentAgentName = ref('Bitsy')
+const isModalOpen = ref(false)
+const sidebarKey = ref(0)
+
 const sessionIdKey = 'chat_session_id'
 const sessionId = localStorage.getItem(sessionIdKey) || crypto.randomUUID()
 localStorage.setItem(sessionIdKey, sessionId)
 
+const openCreateModal = () => {
+    isModalOpen.value = true
+}
+
+const handleAgentCreated = () => {
+    sidebarKey.value++
+}
+
+const updateAgent = (slug) => {
+    selectedAgent.value = slug
+    messages.value = []
+
+    currentAgentName.value = slug.charAt(0).toUpperCase() + slug.slice(1)
+}
+
 const scrollToBottom = () => {
     nextTick(() => {
-        setTimeout(() => {
-            const el = chatContainer.value
-            if (el) el.scrollTop = el.scrollHeight
-        }, 0)
+        const el = chatContainer.value
+        if (el) el.scrollTop = el.scrollHeight
     })
 }
 
@@ -83,6 +113,7 @@ const sendMessage = async () => {
         const { data } = await axios.post('/chat', {
             input: userMessage,
             session_id: sessionId,
+            agent: selectedAgent.value,
         })
         messages.value.push({ role: 'assistant', content: data.reply })
     } catch (e) {
